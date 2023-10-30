@@ -16,6 +16,30 @@ allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')}
 print(allAnimes)
 
 
+def findSubHeader(text):
+    datalist = {
+        "Kategori": "category",
+        "İngilizce": "englishName",
+        "Diğer Adları": "otherNames",
+        "Japonca": "japanese",
+        "Anime Türü": "types",
+        "Bölüm Sayısı": "episodeCount",
+        "Başlama Tarihi": "startDate",
+        "Yayın Günü": "publishDate",
+        "Yaş Sınırı": "ageLimit",
+        "Yapımcı": "creator",
+        "Stüdyo": "studio",
+        "Bölüm Süresi": "episodeLength",
+        "Puanı": "points",
+        "Oylama": 'oylama-',
+        "Fansub": "fansubs",
+        "Altyazı": "cc",
+        "Beğeniler": 'likes-',
+        "Özet;": "content",
+    }
+
+    return datalist[text]
+
 
 def getAnimeInformation(url):
     driver.get(url)
@@ -27,11 +51,14 @@ def getAnimeInformation(url):
     generalInformation = {'anime': animeName, 'information': {}, 'episodes': episodes}
     for i in range(len(a)):
         try:
-            b = a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(1)').text
+            b = findSubHeader(a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(1)').text)
+
             c = a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(3)').text
             if b == "Anime Türü":
                 c = [k.text for k in
                     a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(3)').find_elements(By.CSS_SELECTOR, 'a')]
+
+
             generalInformation['information'][b] = c
         except Exception as ex:
             continue
@@ -96,7 +123,7 @@ for anime in allAnimes:
     print('Gathering -> ', anime)
     animeInformation = getAnimeInformation(anime['url'])
     animeInformationList.append(animeInformation)
-    with open("animeList.json", "w") as file:
+    with open("seasonList.json", "w") as file:
         file.write(json.dumps(animeInformationList))
     # for episode in animeInformation['episodes']:
     #     episodeInformation = getEpisodeInformation(episode)
