@@ -3,6 +3,9 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import undetected_chromedriver as uc
+import threading
+from concurrent.futures import ThreadPoolExecutor
+import concurrent.futures as cf
 
 options = uc.ChromeOptions()
 options.add_argument('--headless')
@@ -12,7 +15,8 @@ driver.maximize_window()
 driver.get("https://www.turkanime.co/")
 driver.find_element(By.XPATH, '//*[@id="aktif-sekme"]/li[2]/a').click()
 time.sleep(2)
-allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')} for a in driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
+allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')} for a in
+             driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
 print(allAnimes)
 
 
@@ -41,12 +45,26 @@ def findSubHeader(text):
     return datalist[text]
 
 
-def getAnimeInformation(url):
-    driver.get(url)
+def threaded_getAnimeInformation(anime):
+    options_local = uc.ChromeOptions()
+    options_local.add_argument('--headless')
+    local_driver = uc.Chrome(use_subprocess=True, options=options_local)
+    local_driver.maximize_window()
 
-    a = driver.find_elements(By.XPATH, '/html/body/article/div/div[3]/div[2]/div/div[3]/div/div/div[2]/div/table/tbody/tr/td[2]/div/table/tbody/tr')
-    animeName = driver.find_element(By.CSS_SELECTOR, "#detayPaylas > div > div.panel-ust > div").text
-    episodes = [a.get_attribute('href') for a in driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
+    try:
+        return getAnimeInformation(anime['url'], local_driver)
+    finally:
+        local_driver.quit()
+
+
+def getAnimeInformation(url, driver_thread):
+    driver_thread.get(url)
+
+    a = driver_thread.find_elements(By.XPATH,
+                                    '/html/body/article/div/div[3]/div[2]/div/div[3]/div/div/div[2]/div/table/tbody/tr/td[2]/div/table/tbody/tr')
+    animeName = driver_thread.find_element(By.CSS_SELECTOR, "#detayPaylas > div > div.panel-ust > div").text
+    episodes = [a.get_attribute('href') for a in
+                driver_thread.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
 
     generalInformation = {'anime': animeName, 'information': {}, 'episodes': episodes}
     for i in range(len(a)):
@@ -56,13 +74,13 @@ def getAnimeInformation(url):
             c = a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(3)').text
             if b == "Anime Türü":
                 c = [k.text for k in
-                    a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(3)').find_elements(By.CSS_SELECTOR, 'a')]
-
+                     a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(3)').find_elements(By.CSS_SELECTOR, 'a')]
 
             generalInformation['information'][b] = c
         except Exception as ex:
             continue
 
+    driver_thread.close()
     return generalInformation
 
 
@@ -119,46 +137,26 @@ def getEpisodeInformation(url):
 
 animeInformationList = []
 
-for anime in allAnimes:
-    print('Gathering -> ', anime)
-    animeInformation = getAnimeInformation(anime['url'])
-    animeInformationList.append(animeInformation)
-    with open("seasonList.json", "w") as file:
-        file.write(json.dumps(animeInformationList))
+# for anime in allAnimes:
+#     print('Gathering -> ', anime)
+#     animeInformation = getAnimeInformation(anime['url'])
+#     animeInformationList.append(animeInformation)
+#     with open("seasonList.json", "w") as file:
+#         file.write(json.dumps(animeInformationList))
+
     # for episode in animeInformation['episodes']:
     #     episodeInformation = getEpisodeInformation(episode)
     #     print(episodeInformation)
 
 
-
-
-
-
-# import threading
-# from concurrent.futures import ThreadPoolExecutor
-#
-# def threaded_getAnimeInformation(anime):
-#     local_driver = uc.Chrome(use_subprocess=True, options=options)
-#     try:
-#         return getAnimeInformation(anime['url'], local_driver)
-#     finally:
-#         local_driver.quit()
-#
-# def getAnimeInformation(url, driver):
-#     # ... (rest of the function as you've written, but use the passed driver instead)
-#
-# # ...
-#
-# animeInformationList = []
-#
-# with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
-#     future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
-#     for future in concurrent.futures.as_completed(future_to_anime):
-#         anime = future_to_anime[future]
-#         try:
-#             animeInformation = future.result()
-#             animeInformationList.append(animeInformation)
-#             with open("seasonList.json", "a") as file:  # Append to the file for each result
-#                 file.write(json.dumps(animeInformation))
-#         except Exception as e:
-#             print(f"Error gathering info for {anime}: {e}")
+with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
+    future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
+    for future in cf.as_completed(future_to_anime):
+        anime = future_to_anime[future]
+        try:
+            animeInformation = future.result()
+            animeInformationList.append(animeInformation)
+            with open("seasonList.json", "w") as file:  # Append to the file for each result
+                file.write(json.dumps(animeInformationList))
+        except Exception as e:
+            print(f"Error gathering info for {anime}: {e}")
