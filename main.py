@@ -129,3 +129,36 @@ for anime in allAnimes:
     #     episodeInformation = getEpisodeInformation(episode)
     #     print(episodeInformation)
 
+
+
+
+
+
+# import threading
+# from concurrent.futures import ThreadPoolExecutor
+#
+# def threaded_getAnimeInformation(anime):
+#     local_driver = uc.Chrome(use_subprocess=True, options=options)
+#     try:
+#         return getAnimeInformation(anime['url'], local_driver)
+#     finally:
+#         local_driver.quit()
+#
+# def getAnimeInformation(url, driver):
+#     # ... (rest of the function as you've written, but use the passed driver instead)
+#
+# # ...
+#
+# animeInformationList = []
+#
+# with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
+#     future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
+#     for future in concurrent.futures.as_completed(future_to_anime):
+#         anime = future_to_anime[future]
+#         try:
+#             animeInformation = future.result()
+#             animeInformationList.append(animeInformation)
+#             with open("seasonList.json", "a") as file:  # Append to the file for each result
+#                 file.write(json.dumps(animeInformation))
+#         except Exception as e:
+#             print(f"Error gathering info for {anime}: {e}")
