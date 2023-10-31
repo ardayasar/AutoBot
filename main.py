@@ -1,14 +1,13 @@
 import json
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 import time
 import undetected_chromedriver as uc
-import threading
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as cf
 
 options = uc.ChromeOptions()
 options.add_argument('--headless')
+# options.headless = False
 driver = uc.Chrome(use_subprocess=True, options=options)
 driver.maximize_window()
 
@@ -17,7 +16,7 @@ driver.find_element(By.XPATH, '//*[@id="aktif-sekme"]/li[2]/a').click()
 time.sleep(2)
 allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')} for a in
              driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
-print(allAnimes)
+print('Found -> ', len(allAnimes))
 
 
 def findSubHeader(text):
@@ -45,6 +44,22 @@ def findSubHeader(text):
     return datalist[text]
 
 
+def translateConnectedAnimes(text):
+    datalist = {
+        "Önceki Hikâye": "previousSeasons",
+        "Sonraki Hikâye": "nextSeasons",
+        "Alternatif Versiyon": "otherVersions",
+        "Yan Hikâye": "sideStory",
+        "Özet": "shortStory",
+        "Karakter": "character",
+        "Diğerleri": "other"
+    }
+
+    if not datalist[text]:
+        return "notfound"
+
+    return datalist[text]
+
 def threaded_getAnimeInformation(anime):
     options_local = uc.ChromeOptions()
     options_local.add_argument('--headless')
@@ -66,7 +81,7 @@ def getAnimeInformation(url, driver_thread):
     episodes = [a.get_attribute('href') for a in
                 driver_thread.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
 
-    generalInformation = {'anime': animeName, 'information': {}, 'episodes': episodes}
+    generalInformation = {'anime': animeName, 'url': url, 'information': {}, 'episodes': episodes, 'connectedAnimes': {}}
     for i in range(len(a)):
         try:
             b = findSubHeader(a[i].find_element(By.CSS_SELECTOR, 'td:nth-child(1)').text)
@@ -79,6 +94,18 @@ def getAnimeInformation(url, driver_thread):
             generalInformation['information'][b] = c
         except Exception as ex:
             continue
+
+    driver_thread.find_element(By.CSS_SELECTOR, '#detayPaylas > div > div.panel-body > div > table > tbody > tr > td:nth-child(1) > table > tbody > tr:nth-child(2) > td > div > a:nth-child(3)').click()
+    time.sleep(1)
+    d = driver_thread.find_elements(By.CSS_SELECTOR, 'div.list-group.baglanti')
+    for f in d:
+        g = translateConnectedAnimes(f.find_element(By.CSS_SELECTOR, 'div.list-group-item > h5.list-group-item-heading').text)
+        generalInformation['connectedAnimes'][g] = []
+        i = f.find_elements(By.CSS_SELECTOR, 'a.list-group-item')
+        for j in i:
+            j_href = j.get_attribute('href')
+            j_name = j.find_element(By.CSS_SELECTOR, 'h4.list-group-item-heading').text
+            generalInformation['connectedAnimes'][g].append({'anime': j_name, 'url': j_href})
 
     driver_thread.close()
     return generalInformation
@@ -101,7 +128,6 @@ def getEpisodeInformation(url):
             videoPlayers = driver.find_elements(By.XPATH, '//*[@id="videodetay"]/div/div[4]/button')
             videoPlayers_length = len(videoPlayers)
             videoPlayers_names = [a.text for a in videoPlayers]
-            # print(videoPlayers_names)
             del videoPlayers
 
             fansub_players = []
@@ -130,24 +156,7 @@ def getEpisodeInformation(url):
     return returnList
 
 
-# animeInformation = getAnimeInformation("https://www.turkanime.co/anime/saikyou-onmyouji-no-isekai-tenseiki")
-# for episode in animeInformation['episodes']:
-#     episodeInformation = getEpisodeInformation(episode)
-#     print(episodeInformation)
-
 animeInformationList = []
-
-# for anime in allAnimes:
-#     print('Gathering -> ', anime)
-#     animeInformation = getAnimeInformation(anime['url'])
-#     animeInformationList.append(animeInformation)
-#     with open("seasonList.json", "w") as file:
-#         file.write(json.dumps(animeInformationList))
-
-    # for episode in animeInformation['episodes']:
-    #     episodeInformation = getEpisodeInformation(episode)
-    #     print(episodeInformation)
-
 
 with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
     future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
@@ -160,3 +169,4 @@ with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
                 file.write(json.dumps(animeInformationList))
         except Exception as e:
             print(f"Error gathering info for {anime}: {e}")
+
