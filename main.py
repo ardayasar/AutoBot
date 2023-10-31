@@ -2,13 +2,10 @@ import json
 from selenium.webdriver.common.by import By
 import time
 import undetected_chromedriver as uc
-import chromedriver_autoinstaller as chromedriver
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as cf
 from tqdm import tqdm
 
-# Init
-chromedriver.install()
 
 options = uc.ChromeOptions()
 options.add_argument('--headless=new')
@@ -23,6 +20,17 @@ allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')}
              driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
 print('Found -> ', len(allAnimes))
 
+chrome_pool = []
+
+# Define the maximum number of Chrome drivers in the pool
+max_drivers = 5
+
+# Initialize the Chrome driver pool
+for _ in range(max_drivers):
+    options = uc.ChromeOptions()
+    options.add_argument('--headless=new')
+    driver = uc.Chrome(use_subprocess=True, options=options)
+    chrome_pool.append(driver)
 
 def findSubHeader(text):
     datalist = {
@@ -67,16 +75,24 @@ def translateConnectedAnimes(text):
 
     return datalist[text]
 
-def threaded_getAnimeInformation(anime):
-    options_local = uc.ChromeOptions()
-    options_local.add_argument('--headless=new')
-    local_driver = uc.Chrome(use_subprocess=True, options=options_local)
-    local_driver.maximize_window()
 
-    try:
-        return getAnimeInformation(anime['url'], local_driver)
-    finally:
-        local_driver.quit()
+def get_available_driver():
+    for driver in chrome_pool:
+        if not driver.is_busy:
+            return driver
+    return None
+
+
+def threaded_getAnimeInformation(anime):
+    def threaded_getAnimeInformation(anime):
+        driver_thread = get_available_driver()
+        if driver_thread is None:
+            return None  # No available drivers, skip this task
+
+        try:
+            return getAnimeInformation(anime['url'], driver_thread)
+        finally:
+            driver_thread.is_busy = False
 
 
 def getAnimeInformation(url, driver_thread):
@@ -168,20 +184,21 @@ total_animes = len(allAnimes)
 completed_animes = 0  # Initialize the counter for completed tasks
 
 with tqdm(total=total_animes) as pbar:
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=max_drivers) as executor:
         future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
 
         for future in cf.as_completed(future_to_anime):
             anime = future_to_anime[future]
             try:
                 animeInformation = future.result()
-                animeInformationList.append(animeInformation)
-                completed_animes += 1
+                if animeInformation:
+                    animeInformationList.append(animeInformation)
+                    completed_animes += 1
 
-                # Update the progress bar
-                pbar.update(1)
+                    # Update the progress bar
+                    pbar.update(1)
 
-                with open("seasonList.json", "w") as file:
-                    file.write(json.dumps(animeInformationList))
+                    with open("seasonList.json", "w") as file:
+                        file.write(json.dumps(animeInformationList))
             except Exception as e:
                 print(f"Error gathering info for {anime}: {e}")
