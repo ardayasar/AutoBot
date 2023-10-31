@@ -4,6 +4,7 @@ import time
 import undetected_chromedriver as uc
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as cf
+from tqdm import tqdm
 
 options = uc.ChromeOptions()
 options.add_argument('--headless')
