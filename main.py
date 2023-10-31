@@ -2,12 +2,16 @@ import json
 from selenium.webdriver.common.by import By
 import time
 import undetected_chromedriver as uc
+import chromedriver_autoinstaller as chromedriver
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as cf
 from tqdm import tqdm
 
+# Init
+chromedriver.install()
+
 options = uc.ChromeOptions()
-options.add_argument('--headless')
+options.add_argument('--headless=new')
 # options.headless = False
 driver = uc.Chrome(use_subprocess=True, options=options)
 driver.maximize_window()
@@ -47,12 +51,14 @@ def findSubHeader(text):
 
 def translateConnectedAnimes(text):
     datalist = {
+        "Ana Hikâye": "mainStory",
         "Önceki Hikâye": "previousSeasons",
         "Sonraki Hikâye": "nextSeasons",
         "Alternatif Versiyon": "otherVersions",
         "Yan Hikâye": "sideStory",
         "Özet": "shortStory",
         "Karakter": "character",
+        "Alternatif Seçenek": "alternatif",
         "Diğerleri": "other"
     }
 
@@ -63,7 +69,7 @@ def translateConnectedAnimes(text):
 
 def threaded_getAnimeInformation(anime):
     options_local = uc.ChromeOptions()
-    options_local.add_argument('--headless')
+    options_local.add_argument('--headless=new')
     local_driver = uc.Chrome(use_subprocess=True, options=options_local)
     local_driver.maximize_window()
 
