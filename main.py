@@ -4,6 +4,8 @@ import time
 import undetected_chromedriver as uc
 from concurrent.futures import ThreadPoolExecutor
 import concurrent.futures as cf
+import tkinter as tk
+from tkinter import ttk
 
 options = uc.ChromeOptions()
 options.add_argument('--headless')
@@ -158,15 +160,37 @@ def getEpisodeInformation(url):
 
 animeInformationList = []
 
-with ThreadPoolExecutor(max_workers=5) as executor:  # Use 5 threads for example
+total_animes = len(allAnimes)
+completed_animes = 0  # Initialize the counter for completed tasks
+
+root = tk.Tk()
+root.title("Progress")
+
+# Create a progress bar widget
+progress = ttk.Progressbar(root, orient="horizontal", length=200, mode="determinate")
+progress.pack()
+
+def update_progress_bar():
+    nonlocal completed_animes
+    completed_animes += 1
+    completion_percentage = (completed_animes / total_animes) * 100
+    progress["value"] = completion_percentage
+    root.update_idletasks()
+
+
+with ThreadPoolExecutor(max_workers=5) as executor:
     future_to_anime = {executor.submit(threaded_getAnimeInformation, anime): anime for anime in allAnimes}
+
     for future in cf.as_completed(future_to_anime):
         anime = future_to_anime[future]
         try:
             animeInformation = future.result()
             animeInformationList.append(animeInformation)
-            with open("seasonList.json", "w") as file:  # Append to the file for each result
+            update_progress_bar()
+
+            with open("seasonList.json", "w") as file:
                 file.write(json.dumps(animeInformationList))
         except Exception as e:
             print(f"Error gathering info for {anime}: {e}")
 
+root.mainloop()
