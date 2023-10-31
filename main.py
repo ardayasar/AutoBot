@@ -21,7 +21,7 @@ allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')}
 print('Found -> ', len(allAnimes))
 
 chrome_pool = []
-max_drivers = 5
+max_drivers = 3
 driver_statuses = [False] * max_drivers  # False indicates a driver is not in use
 
 # Initialize the Chrome driver pool
@@ -136,7 +136,6 @@ def getAnimeInformation(url, driver_thread):
             j_name = j.find_element(By.CSS_SELECTOR, 'h4.list-group-item-heading').text
             generalInformation['connectedAnimes'][g].append({'anime': j_name, 'url': j_href})
 
-    driver_thread.close()
     return generalInformation
 
 
