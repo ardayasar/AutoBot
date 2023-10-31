@@ -28,6 +28,20 @@ driver_statuses = [False] * max_drivers  # False indicates a driver is not in us
 for _ in range(max_drivers):
     options = uc.ChromeOptions()
     options.add_argument('--headless=new')
+    options.add_argument("--no-sandbox");
+    options.add_argument("--disable-dev-shm-usage");
+    options.add_argument("--disable-renderer-backgrounding");
+    options.add_argument("--disable-background-timer-throttling");
+    options.add_argument("--disable-backgrounding-occluded-windows");
+    options.add_argument("--disable-client-side-phishing-detection");
+    options.add_argument("--disable-crash-reporter");
+    options.add_argument("--disable-oopr-debug-crash-dump");
+    options.add_argument("--no-crash-upload");
+    options.add_argument("--disable-gpu");
+    options.add_argument("--disable-extensions");
+    options.add_argument("--disable-low-res-tiling");
+    options.add_argument("--log-level=3");
+    options.add_argument("--silent");
     driver = uc.Chrome(use_subprocess=True, options=options)
     chrome_pool.append(driver)
 
