@@ -21,9 +21,8 @@ allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')}
 print('Found -> ', len(allAnimes))
 
 chrome_pool = []
-
-# Define the maximum number of Chrome drivers in the pool
 max_drivers = 5
+driver_statuses = [False] * max_drivers  # False indicates a driver is not in use
 
 # Initialize the Chrome driver pool
 for _ in range(max_drivers):
@@ -76,23 +75,30 @@ def translateConnectedAnimes(text):
     return datalist[text]
 
 
-def get_available_driver():
-    for driver in chrome_pool:
-        if not driver.is_busy:
-            return driver
-    return None
+def get_available_driver_index():
+    for i, status in enumerate(driver_statuses):
+        if not status:
+            driver_statuses[i] = True  # Mark the driver as in use
+            return i
+    return None  # No available drivers
 
 
 def threaded_getAnimeInformation(anime):
-    def threaded_getAnimeInformation(anime):
-        driver_thread = get_available_driver()
-        if driver_thread is None:
-            return None  # No available drivers, skip this task
+    driver_index = get_available_driver_index()
+    if driver_index is None:
+        return None  # No available drivers, skip this task
 
-        try:
-            return getAnimeInformation(anime['url'], driver_thread)
-        finally:
-            driver_thread.is_busy = False
+    options_local = uc.ChromeOptions()
+    options_local.add_argument('--headless=new')
+    local_driver = uc.Chrome(use_subprocess=True, options=options_local)
+    local_driver.maximize_window()
+
+    try:
+        return getAnimeInformation(anime['url'], local_driver)
+    finally:
+        local_driver.quit()
+        driver_statuses[driver_index] = False  # Mark the driver as available
+
 
 
 def getAnimeInformation(url, driver_thread):
@@ -202,3 +208,4 @@ with tqdm(total=total_animes) as pbar:
                         file.write(json.dumps(animeInformationList))
             except Exception as e:
                 print(f"Error gathering info for {anime}: {e}")
+
