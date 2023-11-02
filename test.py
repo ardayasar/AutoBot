@@ -1,4 +1,24 @@
 import requests
+import json
+from selenium.webdriver.common.by import By
+import time
+import undetected_chromedriver as uc
+
+options = uc.ChromeOptions()
+# options.add_argument('--headless=new')
+options.headless = False
+driver = uc.Chrome(use_subprocess=True, options=options)
+driver.maximize_window()
+
+driver.get("https://www.turkanime.co/")
+time.sleep(3)
+cl = driver.get_cookies()
+print(cl)
+cookies_dict = {}
+for c in cl:
+    cookies_dict[c['name']] = c['value']
+
+
 
 url = "https://www.turkanime.co/"
 
@@ -16,9 +36,10 @@ headers = {
   'sec-fetch-mode': 'navigate',
   'sec-fetch-site': 'none',
   'sec-fetch-user': '?1',
-  'x-postman-captr': '9535798'
 }
 
-response = requests.request("GET", url, headers=headers, data=payload)
+response = requests.request("GET", url, headers=headers, cookies=cookies_dict, data=payload)
 
-print(response.text)
+print(response)
+
+driver.quit()
