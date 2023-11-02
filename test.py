@@ -32,7 +32,7 @@ headers = {
     'Accept-Language': 'tr-TR,tr;q=0.8,en-US;q=0.5,en;q=0.3',
     'Accept-Encoding': 'gzip, deflate, br',
     'Connection': 'keep-alive',
-    'Cookie': '; '.join([f"{name}={value}" for name, value in cookies_dict.items()]),  # Include desired cookies in the "Cookie" header
+    'Cookie': 'cf_clearance=.gn.zf260EYCOuDWgMwG_53.uEw4e6BK7B9dmxllmf0-1698926138-0-1-5333897d.d646b197.432d69d-250.2.1698926138; PHPSESSID=8qbstno7ocuqvofchqbcm0it1m',  # Include desired cookies in the "Cookie" header
     'Upgrade-Insecure-Requests': '1',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
