@@ -19,9 +19,10 @@ time.sleep(2)
 allAnimes = [{'anime': a.get_attribute('title'), 'url': a.get_attribute('href')} for a in
              driver.find_elements(By.XPATH, '//*[@id="sagScroll"]/ul/li/a[2]')]
 print('Found -> ', len(allAnimes))
+driver.quit()
 
 chrome_pool = []
-max_drivers = 3
+max_drivers = 1
 driver_statuses = [False] * max_drivers  # False indicates a driver is not in use
 
 # Initialize the Chrome driver pool
