@@ -14,9 +14,23 @@ driver.get("https://www.turkanime.co/")
 time.sleep(3)
 cl = driver.get_cookies()
 print(cl)
+
+# Prepare cookies for requests
 cookies_dict = {}
 for c in cl:
     cookies_dict[c['name']] = c['value']
+    if 'domain' in c:
+        cookies_dict[c['name']] += f"; Domain={c['domain']}"
+    if 'path' in c:
+        cookies_dict[c['name']] += f"; Path={c['path']}"
+    if 'expires' in c:
+        cookies_dict[c['name']] += f"; Expires={c['expires']}"
+    if 'httpOnly' in c and c['httpOnly']:
+        cookies_dict[c['name']] += "; HttpOnly"
+    if 'secure' in c and c['secure']:
+        cookies_dict[c['name']] += "; Secure"
+    if 'sameSite' in c:
+        cookies_dict[c['name']] += f"; SameSite={c['sameSite']}"
 
 url = "https://www.turkanime.co/"
 
@@ -41,5 +55,3 @@ response = requests.get(url, headers=headers, data=payload)
 print(response)
 
 driver.quit()
-
-# [{'domain': '.turkanime.co', 'expiry': 1730466363, 'httpOnly': True, 'name': 'cf_clearance', 'path': '/', 'sameSite': 'None', 'secure': True, 'value': 'LDKGZu6lT35sgzj.jmWjuW.YQI8DNiaL6dXPpI9.aAA-1698930362-0-1-e037d2aa.2dedb22f.b3ac77b0-0.2.1698930362'}, {'domain': '.turkanime.co', 'expiry': 1733490362, 'httpOnly': False, 'name': '_ga', 'path': '/', 'sameSite': 'Lax', 'secure': False, 'value': 'GA1.1.1438311793.1698930363'}, {'domain': '.turkanime.co', 'expiry': 1733490362, 'httpOnly': False, 'name': '_ga_X5VBMNE3D1', 'path': '/', 'sameSite': 'Lax', 'secure': False, 'value': 'GS1.1.1698930362.1.0.1698930362.60.0.0'}, {'domain': 'www.turkanime.co', 'httpOnly': True, 'name': 'PHPSESSID', 'path': '/', 'sameSite': 'Lax', 'secure': True, 'value': 'd25uh8q8pr9v7t240mubli4hv3'}]
